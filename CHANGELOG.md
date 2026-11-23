@@ -1,0 +1,203 @@
+# Changelog
+
+All notable changes to this plugin are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
+[Semantic Versioning](https://semver.org/).
+
+
+## oma.yr 1.0.0
+
+Fork of Yr.no (unofficial) 0.5.1 as `oma.yr`.
+
+- New: a vertical 10-day table (yr.no "daglig tabell" style) replaces NEXT 4
+  DAYS — weekday/date, night/morning/afternoon/evening symbols, max/min,
+  daily precipitation (blue, with a bar) and max wind.
+- Removed: the tekstvarsel box, its fetch and the `textForecast` /
+  `textForecastArea` settings.
+- The MET User-Agent identifies as `oma.yr/<version> github.com/nmlit/oma.yr`.
+- No GitHub Actions workflow (the tests run with `npm test`).
+- Saved places are also found when the widget sits in `centerBegin` /
+  `centerEnd`.
+
+## [Unreleased]
+
+## [0.5.1] — 2026-09-27
+### Fixed
+- On Omarchy 4.0.4 and later the popup could not be closed: Escape, a click
+  outside, the pill and `omarchy-shell shell hide` all left it open until the
+  shell was restarted. Omarchy 4.0.4 hands plugins a read-only bar, and the
+  popup's close wrote to it before hiding. It now uses the bar's setter, and
+  hides first, so a failing cleanup can no longer keep it open. Restart the
+  shell after updating (`omarchy restart shell`): its plugin reload rebuilds
+  the pill but keeps running the popup code it compiled before.
+  Reported by [@Glen-Sumner](https://github.com/Glen-Sumner) in
+  [#19](https://github.com/Knutsi/omarchy-yr-plugin/issues/19);
+  [@Lifferado](https://github.com/Lifferado)
+  ([#18](https://github.com/Knutsi/omarchy-yr-plugin/pull/18)) and
+  [@Glen-Sumner](https://github.com/Glen-Sumner)
+  ([#20](https://github.com/Knutsi/omarchy-yr-plugin/pull/20)) had each sent
+  the same fix before this one. Thank you both.
+
+## [0.5.0] — 2026-08-25
+### Added
+- Keyboard routes into the search view: `s` in the popup opens it, Shift+Enter
+  pins the highlighted row instead of opening it (unpinning one already
+  pinned), and Backspace on an empty search box goes back. Shift+Enter works
+  on a search result, not just a saved place — the place is remembered and
+  pinned in one step.
+- A key-hint bar under the search list shows the keys that work right now, as
+  small caps: `↑` `↓` choose · `↵` open · `⇧↵` pin · `Esc` `⌫` back. The
+  status line above the list is now status only — it no longer doubles as the
+  key legend.
+- Shift + ← / → in the popup pan an hour cursor along the hour-by-hour
+  graph. The current-weather read-out follows it — glyph, big temperature
+  and a condition line that names the hour (`14:00 · Cloudy`), which is the
+  only place the popup ever shows a time. Plain ← / → still switch pinned
+  places. Backspace leaves hour-pan mode, and closing the popup by any route
+  does the same. Wind, humidity and sunrise/sunset stay on the present: the
+  hourly series carries no wind or humidity, and the sun times belong to the
+  day.
+
+## [0.4.1] — 2026-08-22
+### Security
+- The shared location file is read through `head -c` (256 KiB + 1) by a
+  bounded process; the `FileView` only watches it for changes and never
+  loads it, so an oversized file is refused before it is allocated in the
+  shell rather than after (marketplace review, issue #1448, finding #3).
+- Processes whose output is unused (`omarchy bar set`,
+  `omarchy-weather-location`) no longer copy their output into a string
+  (they print at most one line; the bytes are still drained by Qt).
+
+## [0.4.0] — 2026-08-22
+### Added
+- ← / → (or h / l) in the popup switch the location between the pinned
+  places, wrapping around; `nextPinned` / `previousPinned` IPC verbs do the
+  same for keybindings. The search view shows a tip once a place is pinned.
+- Saved places: the search box now opens empty with your last five searches
+  listed under it, and up to five places can be pinned to the top. Stored
+  as a `places` array on the widget's `shell.json` entry, the way
+  Omarchy's own widgets keep small state.
+- A globe button next to the location name opens the same location on
+  yr.no (Norwegian site for a Norwegian locale): the place's own page when
+  yr's register knows it — looked up by the name in use, then by the
+  nearest town — and a coordinate page otherwise. The URL is fixed text plus
+  a validated location id or the rounded coordinates, opened through
+  `omarchy-launch-browser` as an argument list.
+- `test/rendering.test.mjs`: every `Text`/`PanelSectionHeader` in plugin QML
+  must be PlainText, and every parser is probed with tainted fixtures.
+### Changed
+- The popup keeps its layout while data loads: the graph, the days row and
+  (in Norway) the tekstvarsel box reserve their final size with quiet
+  placeholders, the status message lives in the graph area instead of
+  pushing sections down, the hero's stats row is always there, and the bar
+  pill shows a placeholder of the same shape instead of collapsing. Only
+  weather warnings still appear on demand.
+- Enter in an empty search box no longer switches to automatic location;
+  "Use automatic location" is the only way back. Search text is capped at
+  100 characters.
+- An unknown MET symbol code is only echoed as condition text when it is
+  shaped like one.
+### Security
+- Hardening ahead of further marketplace review: temperatures outside
+  −100…70 °C are dropped before they can size the graph (one such value
+  could previously stall a paint or throw inside a binding); MET symbol
+  codes are looked up with `hasOwnProperty` (`constructor_day` used to
+  yield a function); the stored location file and GeoClue's output get the
+  same size ceiling as HTTP bodies; a `Last-Modified` value is only sent
+  back as `If-Modified-Since` when it is shaped like an HTTP date; every
+  child process is now an argument list built and tested in `Model.js`
+  (the notification used to go through a shell string), the helpers run
+  under `timeout`, and a place name or forecast text can never start with
+  a dash where a helper would read it as an option.
+- README states plainly what data leaves the machine, to whom, and when.
+- Strings from outside the plugin (MET warnings and text forecasts, geocoder
+  and IP-location names, the stored location file) are rendered as plain
+  text: every parser strips angle brackets and control characters and caps
+  field length (`plainText()`), and every `Text` in the plugin's QML sets
+  `textFormat: Text.PlainText`. Previously a markup-shaped field (for example
+  `<img src="…">` in a warning description) would be auto-detected as rich
+  text and could make the shell load a remote resource. Raised by the
+  marketplace security review (HANCORE-linux/omarchy-plugin-marketplace#1448).
+- An unknown MET `symbol_code` is shown as condition text only when it is
+  shaped like one (`[a-z_]`); the Photon reverse lookup's country code must be
+  a two-letter code.
+## [0.3.2] — 2026-08-22
+
+### Added
+- CI: GitHub Actions runs the test suite on every push and pull request.
+- An invariant test: every curl invocation must carry both a time bound and a
+  size ceiling, and new curl argv literals in `Model.js` fail the build.
+
+### Security
+- Every HTTP response is now size-capped — 256 KiB for the lookup services
+  (geocoders, IP location, reverse lookup), 2 MiB for MET Norway — both at
+  curl (`--max-filesize`) and again before JSON parsing, so a misbehaving or
+  hostile endpoint can no longer grow the shell's memory without bound.
+  Raised by the marketplace security review
+  (HANCORE-linux/omarchy-plugin-marketplace#1448).
+
+## [0.3.1] — 2026-08-22
+
+### Changed
+- The hourly graph is drawn in the theme foreground at varying opacity instead
+  of `urgent`/`accent`, so themes with a bright red or a loud accent no longer
+  make the temperature curve and rain bars shout.
+- The GPS tooltip points to the README instead of quoting a `sudo pacman`
+  command.
+
+## [0.3.0] — 2026-08-22
+
+### Changed
+- Plugin id is now `io.github.knutsi.yr` (was `knutsi.weather-yr`) — the
+  permanent marketplace id. Reinstall: `omarchy plugin remove knutsi.weather-yr`
+  then `omarchy plugin add https://github.com/Knutsi/omarchy-yr-plugin.git --enable`.
+- One shell-wide data service (`kinds: ["service", "bar-widget"]`): forecasts,
+  warnings, text forecast, location and search are fetched once and shared by
+  the per-monitor bar widgets. IPC verbs now act on every screen.
+- Popup split into components (hero, graph, days, text forecast, settings,
+  search view); `Panel.qml` is a thin view.
+- English chrome everywhere the plugin writes text ("Tomorrow", "Yellow level");
+  MET's own texts stay in their source language.
+
+### Fixed
+- Searching for the same place twice returned "No matches".
+- "Use automatic location" hid the bar pill until the next refresh.
+- A forecast fetched for the previous location could be kept for the new one
+  and frozen by the `304 Not Modified` path.
+- A name-only `weather.json` showed the wrong city under the saved name; the
+  name is now geocoded once and its coordinates stored.
+- Saving a location could leave the spinner stuck and disable Escape.
+- The tekstvarsel toggle disappeared after a restart when turned off.
+- Kelvin graph axis was labelled in degrees.
+- Bar pill now shows an error glyph (with tooltip) when no forecast could be
+  fetched, instead of vanishing.
+
+## [0.2.0] — 2026-08-22
+
+### Added
+- Place search through Kartverket (Norway's place-name register) and Photon
+  (OpenStreetMap) in addition to Open-Meteo — finds farms, hotels and seters.
+- GPS / Wi-Fi positioning through GeoClue with a satellite button, detection
+  of the service state and explanatory tooltips.
+- Tekstvarsel (MET Textforecast 3.0) for the Norwegian land region, on by
+  default, scrollable, with a toggle.
+- Weather warnings (MET MetAlerts 2.0) as a coloured, expandable banner.
+- Sunrise and sunset computed locally.
+
+## [0.1.0] — 2026-08-21
+
+### Added
+- First release: theme-tinted bar pill, popup with current weather, hourly
+  graph, daily forecast, units (°C/°F/K), location shared with Omarchy's stock
+  weather widget, IP-based auto-detection.
+
+[Unreleased]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.3.2...v0.4.0
+[0.3.2]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/Knutsi/omarchy-yr-plugin/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/Knutsi/omarchy-yr-plugin/releases/tag/v0.1.0

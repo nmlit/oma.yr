@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "oma.yr",
+  "name": "oma.yr",
+  "version": "1.0.0",
+  "author": "nmlit (fork of Yr.no (unofficial) by Knut Åbjørsbråten)",
+  "license": "MIT",
+  "description": "yr.no (MET Norway) weather in the bar: current conditions, warnings, hourly graph and a 10-day table with precipitation. Fork of io.github.knutsi.yr.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "oma.yr",
+    "description": "Current conditions, warnings, hourly graph and a yr.no-style 10-day table (night/morning/afternoon/evening, max/min, precipitation, wind) from MET Norway",
+    "category": "Info",
+    "allowMultiple": false,
+    "defaultSection": "center",
+    "defaults": {
+      "refreshMinutes": 15,
+      "unit": "metric",
+      "barFormat": "icon-temp",
+      "graphHours": 24
+    },
+    "schema": [
+      {
+        "key": "refreshMinutes",
+        "type": "integer",
+        "label": "Refresh (minutes)",
+        "description": "MET Norway asks clients to poll at most every 10 minutes",
+        "min": 10,
+        "max": 180,
+        "defaultValue": 15
+      },
+      {
+        "key": "unit",
+        "type": "string",
+        "label": "Units",
+        "description": "metric (°C, m/s, mm), imperial (°F, mph, in) or kelvin",
+        "defaultValue": "metric"
+      },
+      {
+        "key": "barFormat",
+        "type": "string",
+        "label": "Bar format",
+        "description": "icon-temp or icon",
+        "defaultValue": "icon-temp"
+      },
+      {
+        "key": "graphHours",
+        "type": "integer",
+        "label": "Graph hours",
+        "description": "Hours shown in the hour-by-hour graph",
+        "min": 6,
+        "max": 48,
+        "defaultValue": 24
+      }
+    ]
+  }
+}
