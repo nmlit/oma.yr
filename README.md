@@ -60,9 +60,9 @@ omarchy-restart-shell
 ## IPC
 
 ```bash
-omarchy-shell -q oma.yr status     # JSON med plats, antal dagar, fel m.m.
-omarchy-shell -q oma.yr refresh
-omarchy-shell -q oma.yr toggleUnit
+omarchy-shell oma.yr status        # JSON med plats, antal dagar, fel m.m.
+omarchy-shell oma.yr refresh
+omarchy-shell oma.yr toggleUnit
 ```
 
 ## Licens och kreditering
