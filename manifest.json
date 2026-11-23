@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "oma.yr",
   "name": "oma.yr",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": "nmlit (fork of Yr.no (unofficial) by Knut Åbjørsbråten)",
   "license": "MIT",
   "description": "yr.no (MET Norway) weather in the bar: current conditions, warnings, hourly graph and a 10-day table with precipitation. Fork of io.github.knutsi.yr.",

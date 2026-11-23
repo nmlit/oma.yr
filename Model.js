@@ -19,7 +19,7 @@
 // the User-Agent, round coordinates to 4 decimals, poll at most every
 // 10 minutes, revalidate with If-Modified-Since, credit "MET Norway".
 
-var VERSION = "1.0.1"
+var VERSION = "1.1.0"
 var USER_AGENT = "oma.yr/" + VERSION + " github.com/nmlit/oma.yr"
 var ATTRIBUTION = "Data from MET Norway"
 
@@ -152,9 +152,12 @@ function degreeSign(unit) {
   return unitSystem(unit) === "kelvin" ? "" : "°"
 }
 
+// Half away from zero, like yr.no (-0.5 → -1, 0.5 → 1); never "-0".
 function roundedTemp(value) {
   var n = num(value)
-  return n === null ? "" : String(Math.round(n))
+  if (n === null) return ""
+  var r = n < 0 ? -Math.round(-n) : Math.round(n)
+  return String(r === 0 ? 0 : r)
 }
 
 // "17°" / "63°" / "290K".
@@ -939,7 +942,9 @@ function gpsStateHelp(state) {
 // MET Norway requests
 // ---------------------------------------------------------------------------
 
-var FORECAST_URL = "https://api.met.no/weatherapi/locationforecast/2.0/compact"
+// oma.yr: *complete*, not compact — only complete carries next_6_hours
+// air_temperature_max/min, which yr.no's daily max/min are built from.
+var FORECAST_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete"
 var TEXTFORECAST_URL = "https://api.met.no/weatherapi/textforecast/3.0/landoverview"
 var METALERTS_URL = "https://api.met.no/weatherapi/metalerts/2.0/current.json"
 
@@ -1209,21 +1214,40 @@ function dailyForecast(forecast, todayString, maxDays) {
 }
 
 // oma.yr: the vertical day table (like yr.no's "daglig tabell"). One row per
-// local calendar day from today, up to `maxDays`: a symbol for each local
-// six-hour period (night 00–06, morning 06–12, afternoon 12–18, evening
-// 18–24) taken from the next_6_hours window that starts closest to the
-// period start, min/max of the instant temperatures, the day's total
-// precipitation and the strongest mean wind. Precipitation is summed without
-// overlap: next_1_hours where the series is hourly, next_6_hours where it
-// turns six-hourly, each window counted on the local day it starts.
+// local calendar day from today, up to `maxDays`, aggregated the way yr.no
+// builds its own daily values (checked against yr.no's forecast API):
+//
+// The series is walked as yr's "long intervals": a six-hour window wherever
+// one starts on a local period boundary (00, 06, 12, 18 — or any entry in the
+// six-hourly tail, which has no next_1_hours), hourly windows in between
+// (the rest of today before the first boundary). Nothing is counted twice:
+// entries inside a window already taken are skipped. Each window counts on
+// the local day it starts. Per day:
+//   - precipitation: the sum of the windows' precipitation_amount. MET's
+//     six-hour amount is its own value, not the sum of the hourly ones, and
+//     it is what yr.no shows (e.g. 0.8 mm where the hours add up to 0.2).
+//   - max / min: next_6_hours air_temperature_max / _min (Locationforecast
+//     *complete*), the instant temperature for hourly windows and as a
+//     fallback when a six-hour window has no max/min (compact).
+//   - wind: the strongest instant wind_speed at the start of a window.
+// Period symbols (night 00–06, morning 06–12, afternoon 12–18, evening
+// 18–24) come from the next_6_hours window that starts closest to the
+// period start; blank where there is none.
 var PERIOD_STARTS = [0, 6, 12, 18]
+var HOUR_MS = 3600 * 1000
 function dayTable(forecast, todayString, maxDays) {
   var series = forecast && forecast.properties ? forecast.properties.timeseries : null
   if (!series || !series.length) return []
   var limit = maxDays || 10
   var buckets = {}
   var order = []
-  var coveredUntil = -Infinity
+  var cursor = -Infinity
+  function widen(bucket, value) {
+    var v = validTempC(value)
+    if (v === null) return
+    if (bucket.minC === null || v < bucket.minC) bucket.minC = v
+    if (bucket.maxC === null || v > bucket.maxC) bucket.maxC = v
+  }
   for (var i = 0; i < series.length; i++) {
     var entry = series[i]
     var t = new Date(entry.time)
@@ -1241,17 +1265,11 @@ function dayTable(forecast, todayString, maxDays) {
       order.push(key)
     }
     var d = entry.data.instant.details
-    var temp = validTempC(d.air_temperature)
-    if (temp !== null) {
-      if (bucket.minC === null || temp < bucket.minC) bucket.minC = temp
-      if (bucket.maxC === null || temp > bucket.maxC) bucket.maxC = temp
-    }
-    var wind = num(d.wind_speed)
-    if (wind !== null && wind >= 0 && wind < 150 && (bucket.windMs === null || wind > bucket.windMs)) bucket.windMs = wind
-
     var hour = t.getHours()
-    var p = Math.floor(hour / 6)
     var six = entry.data.next_6_hours
+    var one = entry.data.next_1_hours
+
+    var p = Math.floor(hour / 6)
     var code = six && six.summary && six.summary.symbol_code ? String(six.summary.symbol_code) : ""
     if (code && p >= 0 && p < 4) {
       var offset = hour - PERIOD_STARTS[p]
@@ -1261,16 +1279,29 @@ function dayTable(forecast, todayString, maxDays) {
       }
     }
 
-    if (ms >= coveredUntil) {
-      var one = entry.data.next_1_hours
-      var window = null, span = 0
-      if (one && one.details && num(one.details.precipitation_amount) !== null) { window = one; span = 1 }
-      else if (six && six.details && num(six.details.precipitation_amount) !== null) { window = six; span = 6 }
-      if (window) {
-        var mm = num(window.details.precipitation_amount)
+    if (ms < cursor) continue           // inside a window already counted
+    var boundary = hour % 6 === 0 || !one
+    var window = null
+    if (six && six.details && boundary) {
+      window = six
+      cursor = ms + 6 * HOUR_MS
+      var hi = num(six.details.air_temperature_max), lo = num(six.details.air_temperature_min)
+      if (hi !== null && lo !== null) { widen(bucket, hi); widen(bucket, lo) }
+      else widen(bucket, d.air_temperature)
+    } else if (one) {
+      window = one
+      cursor = ms + HOUR_MS
+      widen(bucket, d.air_temperature)
+    } else {
+      widen(bucket, d.air_temperature)
+    }
+    var wind = num(d.wind_speed)
+    if (wind !== null && wind >= 0 && wind < 150 && (bucket.windMs === null || wind > bucket.windMs)) bucket.windMs = wind
+    if (window && window.details) {
+      var mm = num(window.details.precipitation_amount)
+      if (mm !== null) {
         if (mm > 0) bucket.precipMm += mm
         bucket.hasPrecip = true
-        coveredUntil = ms + span * 3600 * 1000
       }
     }
   }

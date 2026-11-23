@@ -78,3 +78,15 @@ samma licens.
 
 - Kolumnrubriken ”mm” i dagstabellen är nu grå som de andra rubrikerna.
 - Den blå stapeln bakom nederbördsvärdet är borttagen; värdet visas fortfarande i blått och fetstil när det blir nederbörd.
+
+## Ändringar i 1.1.0
+
+- Dagstabellen räknar nu som yr.no:s dagliga tabell, så värdena stämmer med yr.no:
+  - **Nederbörd** är summan av MET:s sextimmarsvärden för natt/morgon/eftermiddag/kväll
+    (00, 06, 12, 18). Bara resten av i dag före första sextimmarsperioden räknas
+    timme för timme. Tidigare summerades timvärdena, vilket kunde ge för lite
+    (t.ex. 0,2 mm i stället för yr.no:s 0,8 mm).
+  - **Max/min** tas från MET:s max/min-temperatur för varje sextimmarsperiod.
+    Därför hämtas prognosen nu från Locationforecast *complete* i stället för *compact*.
+  - **Vind** är den starkaste vinden i början av varje period.
+- Temperaturer avrundas som på yr.no: −0,5° blir −1°.

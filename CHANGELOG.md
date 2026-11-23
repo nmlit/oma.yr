@@ -5,6 +5,19 @@ All notable changes to this plugin are documented here. The format follows
 [Semantic Versioning](https://semver.org/).
 
 
+## oma.yr 1.1.0
+
+- Day table values now match yr.no's daily table:
+  - precipitation is the sum of MET's six-hour amounts on the local period
+    boundaries (00/06/12/18, or the six-hourly tail), with hourly amounts only
+    before the first boundary — no more hourly sums that undercount
+    (0.2 → 0.8 mm on a test day);
+  - max/min come from next_6_hours air_temperature_max/min, so the forecast
+    is fetched from Locationforecast *complete* instead of compact;
+  - wind is the strongest instant wind at the start of each window.
+- Temperatures round half away from zero like yr.no (-0.5° → -1°).
+- Tests: aggregation checked against a live MET/yr.no snapshot for Öxnehaga.
+
 ## oma.yr 1.0.1
 
 - Day table: the "mm" column header is grey like the other headers.

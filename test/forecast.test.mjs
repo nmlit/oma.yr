@@ -160,7 +160,7 @@ test("MET requests: URL, User-Agent, If-Modified-Since, 4-decimal coordinates", 
   assert.equal(Model.roundCoord("abc"), null)
   assert.equal(Model.locationKey(59.91273, 10.74617), "59.9127,10.7462")
   assert.equal(Model.locationKey(null, 1), "")
-  assert.equal(Model.forecastUrl(59.912673812, 10.7461747), "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=59.9127&lon=10.7462")
+  assert.equal(Model.forecastUrl(59.912673812, 10.7461747), "https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=59.9127&lon=10.7462")
   assert.equal(Model.forecastUrl(null, 1), "")
   assert.ok(Model.alertsUrl(59.91273, 10.74617, "no").endsWith("?lat=59.9127&lon=10.7462&lang=no"))
   assert.ok(Model.alertsUrl(59.91273, 10.74617, "xx").endsWith("&lang=en"))

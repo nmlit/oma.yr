@@ -1,6 +1,6 @@
 {
   "name": "oma.yr",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "description": "oma.yr \u2014 fork of the unofficial yr.no (MET Norway) weather widget for the Omarchy bar",
   "license": "MIT",
