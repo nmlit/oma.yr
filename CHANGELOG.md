@@ -5,6 +5,11 @@ All notable changes to this plugin are documented here. The format follows
 [Semantic Versioning](https://semver.org/).
 
 
+## oma.yr 1.0.1
+
+- Day table: the "mm" column header is grey like the other headers.
+- Day table: removed the blue bar behind the precipitation value.
+
 ## oma.yr 1.0.0
 
 Fork of Yr.no (unofficial) 0.5.1 as `oma.yr`.

@@ -20,11 +20,6 @@ Item {
 
   readonly property var days: weather && weather.dayRows && weather.dayRows.length > 0 ? weather.dayRows : []
   readonly property string unit: weather ? weather.unit : "metric"
-  readonly property real precipMax: {
-    var m = 0
-    for (var i = 0; i < days.length; i++) if (days[i].precipMm !== null && days[i].precipMm > m) m = days[i].precipMm
-    return m
-  }
 
   readonly property real inner: width - 2 * gutter
   readonly property real dayW: inner * 0.25
@@ -82,7 +77,7 @@ Item {
         rightPadding: Style.space(6)
         textFormat: Text.PlainText
         text: root.unit === "imperial" ? "in" : "mm"
-        color: root.rainColor
+        color: root.faded
         font.family: root.fontFamily
         font.pixelSize: Style.font.caption * 0.85
       }
@@ -173,16 +168,6 @@ Item {
 
           Item {
             width: root.precipW; height: parent.height
-            // A bar behind the number, scaled to the wettest day shown.
-            Rectangle {
-              visible: rowItem.wet
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              height: parent.height * 0.62
-              radius: Style.space(3)
-              width: rowItem.wet ? Math.max(Style.space(4), parent.width * Math.min(1, rowItem.day.precipMm / Math.max(root.precipMax, 2))) : 0
-              color: Qt.rgba(0.30, 0.64, 1.0, 0.22)
-            }
             Text {
               anchors.fill: parent
               horizontalAlignment: Text.AlignRight; verticalAlignment: Text.AlignVCenter

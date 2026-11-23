@@ -73,3 +73,8 @@ med delar från Omarchys egna väderplugin (© 2025 Omarchy contributors, MIT).
 Den ursprungliga licenstexten finns oförändrad i [LICENSE](LICENSE). Ändringarna
 i oma.yr (tiodagarstabellen, borttagen tekstvarsel) är gjorda av nmlit under
 samma licens.
+
+## Ändringar i 1.0.1
+
+- Kolumnrubriken ”mm” i dagstabellen är nu grå som de andra rubrikerna.
+- Den blå stapeln bakom nederbördsvärdet är borttagen; värdet visas fortfarande i blått och fetstil när det blir nederbörd.

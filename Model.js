@@ -19,7 +19,7 @@
 // the User-Agent, round coordinates to 4 decimals, poll at most every
 // 10 minutes, revalidate with If-Modified-Since, credit "MET Norway".
 
-var VERSION = "1.0.0"
+var VERSION = "1.0.1"
 var USER_AGENT = "oma.yr/" + VERSION + " github.com/nmlit/oma.yr"
 var ATTRIBUTION = "Data from MET Norway"
 
